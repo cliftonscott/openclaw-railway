@@ -42,7 +42,10 @@ test('ensureAgntsWorkspaceBootstrap creates a managed AGNTS.md block', () => {
 
   const content = readFileSync(bootstrapPath, 'utf8');
   assert.match(content, /## AGNTS admin API auth/);
+  assert.match(content, /## AGNTS bundled skills/);
   assert.match(content, /## AGNTS cluster triage/);
+  assert.match(content, /agnts_cluster_watch/);
+  assert.match(content, /agnts_cluster_triage/);
   assert.match(content, /runClusterWatchReadiness\.js/);
   assert.match(content, /runClusterWatchMonitor\.js/);
 });
