@@ -277,6 +277,33 @@ Install skills from two sources:
 | `INTERNAL_GATEWAY_PORT` | Internal port for OpenClaw gateway | `18789` | No |
 | `PORT` | External port (Railway overrides this) | `8080` | No |
 | `SEARXNG_URL` | SearXNG instance URL (enables search skill) | — | No |
+| `AGNTS_ADMIN_CLIENT_ID` | Enables AGNTS admin OIDC access and hosted AGNTS bootstrap | — | No |
+| `AGNTS_ADMIN_CLIENT_SECRET` | Secret used to mint AGNTS admin access tokens | — | No |
+| `AGNTS_ADMIN_SERVICE_ID` | AGNTS OIDC `service_id` for admin tokens | `openclaw` | No |
+| `AGNTS_ADMIN_TOKEN_URL` | AGNTS OIDC token endpoint | `https://developers.agnts.social/oidc/token` | No |
+| `AGNTS_ADMIN_API_BASE_URL` | AGNTS admin API base URL | `https://us-central1-drift-55edb.cloudfunctions.net/adminApi` | No |
+| `AGNTS_TOOLING_ROOT` | Override path to the vendored AGNTS tooling bundle | `/app/agnts-tooling` | No |
+| `AGNTS_CLUSTER_WATCH_SCHEDULE` | Cron schedule for the hosted AGNTS cluster-watch monitor | `0 * * * *` | No |
+| `AGNTS_CLUSTER_WATCH_CHANNEL` | Destination channel for emitted AGNTS cluster alerts | `#openclaw` | No |
+| `AGNTS_CLUSTER_WATCH_CRON_ENABLED` | Enable or disable the hosted cluster-watch cron seed | `true` | No |
+
+### AGNTS hosted operator bootstrap
+
+When `AGNTS_ADMIN_CLIENT_ID` and `AGNTS_ADMIN_CLIENT_SECRET` are present, the wrapper now seeds two hosted runtime surfaces on startup:
+
+- `OPENCLAW_WORKSPACE_DIR/AGNTS.md` gets a managed AGNTS admin-auth + cluster-triage block.
+- `OPENCLAW_STATE_DIR/cron/jobs.json` gets an hourly `agnts-cluster-watch` job that stays quiet unless the report monitor says an alert or cluster change should be emitted.
+
+The AGNTS cluster tooling is vendored under `agnts-tooling/dist`, so the image can run:
+
+```bash
+npm run agnts:cluster-watch-readiness
+npm run agnts:cluster-watch
+npm run agnts:cluster-watch-monitor
+npm run agnts:cluster-drilldown -- --cluster-id 3 --stdout-only
+```
+
+The hosted agent is instructed to use cluster-watch first, then drill down into the reported behavioral cluster, and only fall back to ranking-only degradation when the readiness gate says cluster-watch is blocked.
 
 ### Railway Volume Setup
 

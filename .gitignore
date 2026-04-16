@@ -24,6 +24,9 @@ coverage/
 # Build output
 dist/
 build/
+!agnts-tooling/
+!agnts-tooling/dist/
+!agnts-tooling/dist/*.js
 
 # IDE
 .idea/

@@ -17,9 +17,10 @@ const PROJECT_ROOT = join(__dirname, '..', '..');
 /**
  * Start the server with a fresh temp state directory and mock CLI on PATH.
  *
+ * @param {Record<string, string>} extraEnv
  * @returns {Promise<{ port: number, stateDir: string, process: ChildProcess, cleanup: () => void }>}
  */
-export async function startServer() {
+export async function startServer(extraEnv = {}) {
   const stateDir = mkdtempSync(join(tmpdir(), 'openclaw-test-'));
   const mockDir = join(PROJECT_ROOT, 'mock');
 
@@ -37,6 +38,7 @@ export async function startServer() {
     HOME: homeDir,
     // Prepend mock/ so `openclaw` resolves to our mock script
     PATH: `${mockDir}:${process.env.PATH}`,
+    ...extraEnv,
   };
 
   const child = spawn('node', [join(PROJECT_ROOT, 'src', 'server.js')], {

@@ -21,6 +21,7 @@ import archiver from 'archiver';
 import { siAnthropic, siGooglegemini, siOpenrouter, siVercel, siCloudflare, siOllama } from 'simple-icons';
 import { CHANNEL_GROUPS, buildChannelConfig, getChannelIcon, getRequiredPlugin } from './channels.js';
 import { validate, migrateConfig, getAllSchemas } from './schema/index.js';
+import { bootstrapAgntsRuntime } from './agnts-bootstrap.js';
 
 import healthRouter, { setGatewayReady } from './health.js';
 import { createAuthMiddleware } from './auth.js';
@@ -36,6 +37,7 @@ import { getLoginPageHTML } from './login-page.js';
 const PORT = process.env.PORT || 8080;
 const SETUP_PASSWORD = process.env.SETUP_PASSWORD;
 const OPENCLAW_STATE_DIR = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
+const OPENCLAW_WORKSPACE_DIR = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
 
 // Custom SVG paths for providers not in simple-icons (viewBox 0 0 24 24)
 const CUSTOM_ICONS = {
@@ -1671,6 +1673,23 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Setup wizard: http://localhost:${PORT}/onboard`);
   console.log(`Lite panel: http://localhost:${PORT}/lite`);
   console.log(`Health check: http://localhost:${PORT}/health`);
+
+  try {
+    const bootstrap = bootstrapAgntsRuntime({
+      stateDir: OPENCLAW_STATE_DIR,
+      workspaceDir: OPENCLAW_WORKSPACE_DIR,
+    });
+    if (bootstrap.enabled) {
+      if (bootstrap.workspace.changed) {
+        console.log(`Seeded AGNTS bootstrap at ${bootstrap.workspace.path}`);
+      }
+      if (bootstrap.cron.changed) {
+        console.log(`Seeded AGNTS cluster-watch cron at ${bootstrap.cron.path}`);
+      }
+    }
+  } catch (error) {
+    console.warn(`AGNTS bootstrap skipped during server startup: ${error.message}`);
+  }
 
   // Check if gateway should auto-start (if already configured)
   const configFile = join(OPENCLAW_STATE_DIR, 'openclaw.json');

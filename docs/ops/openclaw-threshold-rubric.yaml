@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "incidentTimeline": {
+    "criticalAlertCount": 5,
+    "criticalErrorCount": 5,
+    "criticalQuarantineCount": 25,
+    "dedupeWindowMs": 300000,
+    "healthStatusSeverity": {
+      "critical": "critical",
+      "degraded": "warning",
+      "healthy": "healthy",
+      "not_ready": "critical",
+      "warning": "warning"
+    },
+    "warningAlertCount": 1,
+    "warningErrorCount": 1,
+    "warningQuarantineCount": 5
+  },
+  "rolloutDiff": {
+    "criticalPaths": [
+      "runtimeConfig.agentTickEnabled",
+      "runtimeConfig.tickSchedulerEnabledEffective",
+      "runtimeConfig.obsEnabledEffective",
+      "healthState.available",
+      "healthState.overallStatus",
+      "healthState.latestDailyHealth.overallStatus"
+    ],
+    "warningPaths": [
+      "newsIngestStatus.lastRun",
+      "pulse.avgReplyOverallScore",
+      "pulse.avgThreadHealthScore",
+      "pulse.avgConversationPerformanceScore",
+      "counters.counters.replyEvalsCount",
+      "counters.counters.threadAnalysesCount"
+    ],
+    "ignorePrefixes": [
+      "capturedAt",
+      "route",
+      "transport"
+    ]
+  }
+}

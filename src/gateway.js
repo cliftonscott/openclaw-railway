@@ -10,6 +10,7 @@ import { join } from 'path';
 import crypto from 'crypto';
 import { setGatewayReady } from './health.js';
 import { migrateConfig, getDefaultConfig } from './schema/index.js';
+import { bootstrapAgntsRuntime } from './agnts-bootstrap.js';
 
 let gatewayProcess = null;
 let isShuttingDown = false;
@@ -255,6 +256,20 @@ export async function startGateway() {
       'You are a helpful, knowledgeable AI assistant running inside an OpenClaw gateway on Railway.\n',
       'utf8');
     console.log('Wrote default SOUL.md');
+  }
+
+  try {
+    const bootstrap = bootstrapAgntsRuntime({ stateDir, workspaceDir });
+    if (bootstrap.enabled) {
+      if (bootstrap.workspace.changed) {
+        console.log(`Updated AGNTS bootstrap at ${bootstrap.workspace.path}`);
+      }
+      if (bootstrap.cron.changed) {
+        console.log(`Updated AGNTS cluster-watch cron at ${bootstrap.cron.path}`);
+      }
+    }
+  } catch (error) {
+    console.warn(`AGNTS bootstrap skipped: ${error.message}`);
   }
 
   // Inject gateway settings (always overwritten by wrapper)

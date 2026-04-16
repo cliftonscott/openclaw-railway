@@ -117,6 +117,8 @@ WORKDIR /app
 COPY --from=wrapper-builder /app/node_modules ./node_modules
 COPY --from=wrapper-builder /app/src ./src
 COPY --from=wrapper-builder /app/package.json ./package.json
+COPY agnts-tooling/ ./agnts-tooling
+COPY docs/ ./docs
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh

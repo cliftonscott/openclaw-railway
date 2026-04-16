@@ -10,6 +10,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "agnts:cluster-watch-readiness": "node agnts-tooling/dist/runClusterWatchReadiness.js --stdout-only",
+    "agnts:cluster-watch": "node agnts-tooling/dist/runClusterWatch.js --stdout-only",
+    "agnts:cluster-drilldown": "node agnts-tooling/dist/runClusterDrilldown.js",
+    "agnts:cluster-watch-monitor": "node agnts-tooling/dist/runClusterWatchMonitor.js --stdout-only",
     "test": "node --test test/*.test.js",
     "test:unit": "node --test test/channels.test.js test/config-builder.test.js",
     "test:e2e": "node --test test/deploy-flow.test.js"
