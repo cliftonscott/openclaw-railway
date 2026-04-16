@@ -97,6 +97,7 @@ Built-in Playwright with Chromium pre-installed for browser-based tools and auto
 ### Pre-bundled Skills
 
 - **SearXNG search** — auto-enabled when `SEARXNG_URL` is set (see [OpenClaw + SearXNG template](https://railway.com/deploy/jOiw-W))
+- **AGNTS operator skills** — bundled read-only/operator playbooks for observability scout, runtime auditor, rollout guardian, scheduler forensics, moderation watch, cluster watch, cluster triage, plan auditor, and guarded runtime toggles
 
 ### Using Plano as an LLM Gateway
 
