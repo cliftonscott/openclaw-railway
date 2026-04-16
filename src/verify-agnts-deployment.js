@@ -7,6 +7,11 @@ import { spawnSync } from 'node:child_process';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const projectRoot = join(__dirname, '..');
 const defaultHealthUrl = process.env.OPENCLAW_HEALTH_URL || 'https://openclaw.agnts.social/health';
+const defaultRailwayTarget = {
+  project: process.env.AGNTS_RAILWAY_PROJECT || null,
+  environment: process.env.AGNTS_RAILWAY_ENVIRONMENT || null,
+  service: process.env.AGNTS_RAILWAY_SERVICE || null,
+};
 const trackedPaths = [
   'src/agnts-bootstrap.js',
   'src/gateway.js',
@@ -50,6 +55,36 @@ function runRailway(args, options = {}) {
 
 function runGh(args, options = {}) {
   return runCommand('gh', args, options);
+}
+
+function buildRailwayStatusText(target) {
+  if (!target.project && !target.environment && !target.service) {
+    return runRailway(['status']).stdout.trim();
+  }
+  return [
+    `Project: ${target.project || 'unknown'}`,
+    `Environment: ${target.environment || 'unknown'}`,
+    `Service: ${target.service || 'unknown'}`,
+  ].join('\n');
+}
+
+function buildDeploymentListArgs(target) {
+  const args = ['deployment', 'list', '--json', '--limit', '20'];
+  if (target.service) {
+    args.push('-s', target.service);
+  }
+  if (target.environment) {
+    args.push('-e', target.environment);
+  }
+  return args;
+}
+
+function normalizeDeployments(rows) {
+  return rows.map((row) => ({
+    id: row.id,
+    status: row.status,
+    timestamp: row.createdAt || row.timestamp || null,
+  }));
 }
 
 function buildRemotePythonCommand(source) {
@@ -231,11 +266,16 @@ function buildRecommendedNextStep(state) {
 export async function verifyAgntsDeployment(options = {}) {
   const healthUrl = options.healthUrl || defaultHealthUrl;
   const mode = options.mode || process.env.AGNTS_VERIFY_MODE || 'full';
+  const railwayTarget = {
+    project: options.project || defaultRailwayTarget.project,
+    environment: options.environment || defaultRailwayTarget.environment,
+    service: options.service || defaultRailwayTarget.service,
+  };
   const localCommit = getLocalCommit();
   const localHashes = getLocalHashes();
-  const status = runRailway(['status']);
-  const deploymentsOutput = runRailway(['deployment', 'list'], { timeoutMs: 30000 }).stdout;
-  const deployments = parseDeploymentList(deploymentsOutput);
+  const statusText = buildRailwayStatusText(railwayTarget);
+  const deploymentsOutput = runRailway(buildDeploymentListArgs(railwayTarget), { timeoutMs: 30000 }).stdout;
+  const deployments = normalizeDeployments(JSON.parse(deploymentsOutput));
   const health = await wakeService(healthUrl);
   const ciMode = mode === 'ci';
 
@@ -283,7 +323,7 @@ export async function verifyAgntsDeployment(options = {}) {
   const result = {
     generatedAt: new Date().toISOString(),
     service: {
-      statusText: status.stdout.trim(),
+      statusText,
       health,
     },
     deployment: {
@@ -294,6 +334,7 @@ export async function verifyAgntsDeployment(options = {}) {
       localCommit,
       trackedPaths,
       mode,
+      railwayTarget,
     },
     runtimeSource: {
       localHashes,

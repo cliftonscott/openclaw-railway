@@ -22,6 +22,9 @@ jobs:
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       OPENCLAW_HEALTH_URL: https://openclaw.agnts.social/health
+      AGNTS_RAILWAY_PROJECT: natural-transformation
+      AGNTS_RAILWAY_ENVIRONMENT: production
+      AGNTS_RAILWAY_SERVICE: OpenClaw-UI
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -45,8 +48,8 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Link Railway project context
-        run: railway status
+      - name: Check Railway target access
+        run: railway deployment list -s "${AGNTS_RAILWAY_SERVICE}" -e "${AGNTS_RAILWAY_ENVIRONMENT}" --limit 1 --json > /dev/null
 
       - name: Run post-deploy verifier with retries
         run: |
