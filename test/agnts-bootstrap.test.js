@@ -52,6 +52,8 @@ test('ensureAgntsWorkspaceBootstrap creates managed AGNTS.md and AGENTS.md block
     assert.match(content, /agnts_cluster_triage/);
     assert.match(content, /runClusterWatchReadiness\.js/);
     assert.match(content, /runClusterWatchMonitor\.js/);
+    assert.match(content, /must execute the AGNTS cluster-watch workflow/);
+    assert.match(content, /do not substitute intuition/);
   }
 });
 

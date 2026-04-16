@@ -305,7 +305,7 @@ npm run agnts:cluster-watch-monitor
 npm run agnts:cluster-drilldown -- --cluster-id 3 --stdout-only
 ```
 
-The hosted agent is instructed to use cluster-watch first, then drill down into the reported behavioral cluster, and only fall back to ranking-only degradation when the readiness gate says cluster-watch is blocked.
+The hosted agent is instructed to execute cluster-watch first, then drill down into the reported behavioral cluster, and only fall back to ranking-only degradation when the readiness gate says cluster-watch is blocked. If live command execution fails, it should report that directly instead of answering from heuristics.
 
 ### Railway Volume Setup
 
