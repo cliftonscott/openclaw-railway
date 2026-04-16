@@ -316,6 +316,7 @@ The hosted agent is instructed to execute cluster-watch first, then drill down i
 - a real `main` agent answer to “Which agent clusters are degrading first?”
 
 The command prints JSON and exits non-zero if any blocking issue remains.
+Use `npm run agnts:verify-deployment -- --mode=ci` for the GitHub Actions smoke variant, which avoids `railway ssh` and only checks deployment success + public health.
 
 GitHub automation is also included in `.github/workflows/verify-openclaw-ui.yml`. To enable it in your fork, add a repository secret named `RAILWAY_TOKEN` with access to the linked Railway project. The workflow runs on:
 - pushes to `main`

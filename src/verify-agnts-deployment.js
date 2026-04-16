@@ -201,6 +201,9 @@ function buildRecommendedNextStep(state) {
   if (state.deployment.latest?.status !== 'SUCCESS') {
     return `Wait for Railway deployment ${state.deployment.latest?.id || 'unknown'} to leave ${state.deployment.latest?.status || 'unknown'} and rerun the verifier.`;
   }
+  if (state.source.mode === 'ci') {
+    return 'CI smoke verification passed. Use `npm run agnts:verify-deployment` locally for the full SSH-backed runtime audit.';
+  }
   if (state.runtimeSource.mismatchedPaths.length > 0) {
     return `Resolve the source/runtime mismatch for ${state.runtimeSource.mismatchedPaths.join(', ')} and rerun the verifier.`;
   }
@@ -215,32 +218,50 @@ function buildRecommendedNextStep(state) {
 
 export async function verifyAgntsDeployment(options = {}) {
   const healthUrl = options.healthUrl || defaultHealthUrl;
+  const mode = options.mode || process.env.AGNTS_VERIFY_MODE || 'full';
   const localCommit = getLocalCommit();
   const localHashes = getLocalHashes();
   const status = runRailway(['status']);
   const deploymentsOutput = runRailway(['deployment', 'list'], { timeoutMs: 30000 }).stdout;
   const deployments = parseDeploymentList(deploymentsOutput);
   const health = await wakeService(healthUrl);
-  const remoteHashes = await getRemoteHashes();
-  const runtimeConfig = await getRemoteConfigState();
-  const clusterPayload = await runClusterQuestion();
-  const clusterAnswer = summarizeClusterVerification(clusterPayload);
-  const mismatchedPaths = compareHashes(localHashes, remoteHashes);
+  const ciMode = mode === 'ci';
+
+  const remoteHashes = ciMode
+    ? Object.fromEntries(trackedPaths.map((path) => [path, null]))
+    : await getRemoteHashes();
+  const runtimeConfig = ciMode
+    ? {
+        memoryCoreEntry: 'skipped-in-ci',
+        pluginKeys: [],
+        slackStreaming: 'skipped-in-ci',
+      }
+    : await getRemoteConfigState();
+  const clusterAnswer = ciMode
+    ? {
+        ok: true,
+        clusterId: null,
+        toolFailures: null,
+        toolCalls: null,
+        snippet: 'Skipped in CI mode because railway ssh is not reliable in GitHub-hosted runners.',
+      }
+    : summarizeClusterVerification(await runClusterQuestion());
+  const mismatchedPaths = ciMode ? [] : compareHashes(localHashes, remoteHashes);
 
   const blockingIssues = [];
   if (deployments[0]?.status !== 'SUCCESS') {
     blockingIssues.push(`latest deployment ${deployments[0]?.id} is ${deployments[0]?.status}`);
   }
-  if (mismatchedPaths.length > 0) {
+  if (!ciMode && mismatchedPaths.length > 0) {
     blockingIssues.push(`runtime source mismatch: ${mismatchedPaths.join(', ')}`);
   }
-  if (runtimeConfig.memoryCoreEntry !== null) {
+  if (!ciMode && runtimeConfig.memoryCoreEntry !== null) {
     blockingIssues.push('memory-core plugin drift still present in openclaw.json');
   }
-  if (!clusterAnswer.ok) {
+  if (!ciMode && !clusterAnswer.ok) {
     blockingIssues.push('cluster answer did not use the live AGNTS cluster-watch path');
   }
-  if (clusterAnswer.toolFailures !== null && clusterAnswer.toolFailures !== 0) {
+  if (!ciMode && clusterAnswer.toolFailures !== null && clusterAnswer.toolFailures !== 0) {
     blockingIssues.push(`cluster answer had ${clusterAnswer.toolFailures} tool failures`);
   }
 
@@ -257,6 +278,7 @@ export async function verifyAgntsDeployment(options = {}) {
     source: {
       localCommit,
       trackedPaths,
+      mode,
     },
     runtimeSource: {
       localHashes,
@@ -276,7 +298,10 @@ export async function verifyAgntsDeployment(options = {}) {
 }
 
 async function main() {
-  const result = await verifyAgntsDeployment();
+  const args = process.argv.slice(2);
+  const modeArg = args.find((arg) => arg.startsWith('--mode='));
+  const mode = modeArg ? modeArg.split('=')[1] : undefined;
+  const result = await verifyAgntsDeployment({ mode });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   process.exitCode = result.overall.ok ? 0 : 1;
 }

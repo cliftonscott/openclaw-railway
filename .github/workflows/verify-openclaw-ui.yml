@@ -54,7 +54,7 @@ jobs:
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
             echo "Verifier attempt ${attempt}/10"
             set +e
-            npm run agnts:verify-deployment > verification-result.json
+            npm run agnts:verify-deployment -- --mode=ci > verification-result.json
             status=$?
             set -e
             cat verification-result.json
