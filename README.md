@@ -288,6 +288,7 @@ Install skills from two sources:
 | `AGNTS_CLUSTER_WATCH_SCHEDULE` | Cron schedule for the hosted AGNTS cluster-watch monitor | `0 * * * *` | No |
 | `AGNTS_CLUSTER_WATCH_CHANNEL` | Destination channel for emitted AGNTS cluster alerts | `#openclaw` | No |
 | `AGNTS_CLUSTER_WATCH_CRON_ENABLED` | Enable or disable the hosted cluster-watch cron seed | `true` | No |
+| `AGNTS_MANAGE_CLUSTER_WATCH_CRON` | Owner of the `agnts-cluster-watch` cron entry. `bootstrap` (default) has this module re-seed the entry into `${stateDir}/cron/jobs.json` on every start; `repo` (also accepts `external`, `none`) skips the re-seed so an external tool can manage the entry without being overwritten. | `bootstrap` | No |
 
 ### AGNTS hosted operator bootstrap
 

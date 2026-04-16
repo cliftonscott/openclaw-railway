@@ -250,9 +250,40 @@ export function upsertClusterWatchJobsContent(content, env = process.env) {
   return `${JSON.stringify(normalized.serialize(jobs), null, 2)}\n`;
 }
 
+/**
+ * Resolve who owns the `agnts-cluster-watch` cron definition.
+ *
+ * - `bootstrap` (default, current behavior): this module re-seeds the job into
+ *   `${stateDir}/cron/jobs.json` on every server start. Good for a fresh
+ *   OpenClaw-UI install where no external tool is managing the job.
+ * - `repo`: this module leaves the job alone. Use when the cron entry is
+ *   managed by an external source of truth (e.g. the drift repo's
+ *   `openclaw-railway/config/cron/jobs.seed.json` synced via
+ *   `npm run sync:cron-jobs`). Without this gate, the bootstrap overwrites
+ *   the externally managed entry on every restart, which can strip fields the
+ *   scheduler needs (e.g. `id`, `createdAtMs`) if the rebuilt entry is
+ *   incomplete.
+ */
+export function resolveClusterWatchCronOwnership(env = process.env) {
+  const raw = trimEnv(env, 'AGNTS_MANAGE_CLUSTER_WATCH_CRON').toLowerCase();
+  if (raw === 'repo' || raw === 'external' || raw === 'none') {
+    return 'repo';
+  }
+  return 'bootstrap';
+}
+
 export function ensureClusterWatchCron(stateDir, env = process.env) {
   if (!isAgntsBootstrapEnabled(env)) {
     return { changed: false, path: join(stateDir, 'cron', 'jobs.json'), skipped: true };
+  }
+
+  if (resolveClusterWatchCronOwnership(env) === 'repo') {
+    return {
+      changed: false,
+      path: join(stateDir, 'cron', 'jobs.json'),
+      skipped: true,
+      skipReason: 'managed externally (AGNTS_MANAGE_CLUSTER_WATCH_CRON=repo)',
+    };
   }
 
   const cronDir = join(stateDir, 'cron');

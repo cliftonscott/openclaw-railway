@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -10,6 +10,7 @@ import {
   buildAgntsManagedBlock,
   ensureClusterWatchCron,
   ensureAgntsWorkspaceBootstrap,
+  resolveClusterWatchCronOwnership,
   upsertClusterWatchJobsContent,
 } from '../src/agnts-bootstrap.js';
 
@@ -124,6 +125,69 @@ test('ensureClusterWatchCron writes jobs.json in the configured state dir', () =
   assert.equal(result.changed, true);
   assert.equal(existsSync(jobsPath), true);
   assert.equal(jobs.some((job) => job.name === 'agnts-cluster-watch'), true);
+});
+
+test('resolveClusterWatchCronOwnership defaults to bootstrap and honors repo opt-out', () => {
+  assert.equal(resolveClusterWatchCronOwnership({}), 'bootstrap');
+  assert.equal(resolveClusterWatchCronOwnership({ AGNTS_MANAGE_CLUSTER_WATCH_CRON: '' }), 'bootstrap');
+  assert.equal(resolveClusterWatchCronOwnership({ AGNTS_MANAGE_CLUSTER_WATCH_CRON: 'bootstrap' }), 'bootstrap');
+  assert.equal(resolveClusterWatchCronOwnership({ AGNTS_MANAGE_CLUSTER_WATCH_CRON: 'repo' }), 'repo');
+  assert.equal(resolveClusterWatchCronOwnership({ AGNTS_MANAGE_CLUSTER_WATCH_CRON: 'REPO' }), 'repo');
+  assert.equal(resolveClusterWatchCronOwnership({ AGNTS_MANAGE_CLUSTER_WATCH_CRON: '  repo  ' }), 'repo');
+  assert.equal(resolveClusterWatchCronOwnership({ AGNTS_MANAGE_CLUSTER_WATCH_CRON: 'external' }), 'repo');
+  assert.equal(resolveClusterWatchCronOwnership({ AGNTS_MANAGE_CLUSTER_WATCH_CRON: 'none' }), 'repo');
+});
+
+test('ensureClusterWatchCron leaves jobs.json untouched when ownership is repo', () => {
+  const stateDir = mkdtempSync(join(tmpdir(), 'openclaw-agnts-state-'));
+  const cronDir = join(stateDir, 'cron');
+  const jobsPath = join(cronDir, 'jobs.json');
+  const existing = JSON.stringify(
+    {
+      version: 1,
+      jobs: [
+        {
+          id: 'externally-managed',
+          name: 'agnts-cluster-watch',
+          enabled: true,
+          schedule: { kind: 'cron', expr: '0 * * * *', tz: 'UTC' },
+          payload: { kind: 'agentTurn', message: 'repo-managed prompt' },
+          createdAtMs: 1,
+        },
+      ],
+    },
+    null,
+    2,
+  );
+  // Pre-seed the file so we can detect writes.
+  mkdirSync(cronDir, { recursive: true });
+  writeFileSync(jobsPath, existing, { flag: 'wx' });
+
+  const result = ensureClusterWatchCron(
+    stateDir,
+    createEnv({ AGNTS_MANAGE_CLUSTER_WATCH_CRON: 'repo' }),
+  );
+
+  assert.equal(result.changed, false);
+  assert.equal(result.skipped, true);
+  assert.match(result.skipReason || '', /managed externally/);
+  assert.equal(readFileSync(jobsPath, 'utf8'), existing);
+});
+
+test('bootstrapAgntsRuntime cron skip under repo ownership still seeds AGNTS.md workspace files', () => {
+  const stateDir = mkdtempSync(join(tmpdir(), 'openclaw-agnts-state-'));
+  const workspaceDir = mkdtempSync(join(tmpdir(), 'openclaw-agnts-workspace-'));
+  const result = bootstrapAgntsRuntime({
+    stateDir,
+    workspaceDir,
+    env: createEnv({ AGNTS_MANAGE_CLUSTER_WATCH_CRON: 'repo' }),
+  });
+
+  assert.equal(result.enabled, true);
+  assert.equal(result.cron.skipped, true);
+  assert.equal(result.workspace.skipped, false);
+  assert.equal(existsSync(join(stateDir, 'cron', 'jobs.json')), false);
+  assert.equal(existsSync(join(workspaceDir, 'AGNTS.md')), true);
 });
 
 test('bootstrapAgntsRuntime skips when AGNTS admin env is absent', () => {
