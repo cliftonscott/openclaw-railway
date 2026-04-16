@@ -22,6 +22,7 @@ import { siAnthropic, siGooglegemini, siOpenrouter, siVercel, siCloudflare, siOl
 import { CHANNEL_GROUPS, buildChannelConfig, getChannelIcon, getRequiredPlugin } from './channels.js';
 import { validate, migrateConfig, getAllSchemas } from './schema/index.js';
 import { bootstrapAgntsRuntime } from './agnts-bootstrap.js';
+import { sanitizeConfig } from './config-sanitize.js';
 
 import healthRouter, { setGatewayReady } from './health.js';
 import { createAuthMiddleware } from './auth.js';
@@ -485,6 +486,7 @@ app.post('/onboard/config', authMiddleware, (req, res) => {
 
     // Auto-migrate legacy keys before validation
     const { migrated } = migrateConfig(config);
+    const { changed: sanitized, changes: sanitizeChanges } = sanitizeConfig(config);
 
     // Validate against schema
     const result = validate(config);
@@ -494,7 +496,7 @@ app.post('/onboard/config', authMiddleware, (req, res) => {
 
     const configFile = join(OPENCLAW_STATE_DIR, 'openclaw.json');
     writeFileSync(configFile, JSON.stringify(config, null, 2));
-    res.json({ success: true, migrated });
+    res.json({ success: true, migrated, sanitized, sanitizeChanges });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -973,6 +975,7 @@ app.post('/lite/api/config', authMiddleware, (req, res) => {
 
     // Auto-migrate legacy keys before validation
     const { migrated } = migrateConfig(config);
+    const { changed: sanitized, changes: sanitizeChanges } = sanitizeConfig(config);
 
     // Validate against schema
     const result = validate(config);
@@ -982,7 +985,7 @@ app.post('/lite/api/config', authMiddleware, (req, res) => {
 
     const configFile = join(OPENCLAW_STATE_DIR, 'openclaw.json');
     writeFileSync(configFile, JSON.stringify(config, null, 2));
-    res.json({ success: true, migrated });
+    res.json({ success: true, migrated, sanitized, sanitizeChanges });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

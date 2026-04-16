@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import { setGatewayReady } from './health.js';
 import { migrateConfig, getDefaultConfig } from './schema/index.js';
 import { bootstrapAgntsRuntime } from './agnts-bootstrap.js';
+import { sanitizeConfig } from './config-sanitize.js';
 
 let gatewayProcess = null;
 let isShuttingDown = false;
@@ -238,6 +239,13 @@ export async function startGateway() {
   if (migrated) {
     console.log('Migrated legacy config keys:');
     for (const change of changes) {
+      console.log(`  ${change}`);
+    }
+  }
+  const { changed: sanitized, changes: sanitizeChanges } = sanitizeConfig(config);
+  if (sanitized) {
+    console.log('Sanitized legacy config fields:');
+    for (const change of sanitizeChanges) {
       console.log(`  ${change}`);
     }
   }
