@@ -274,6 +274,7 @@ Install skills from two sources:
 | `SETUP_PASSWORD` | Password for `/onboard` and `/lite` | — | **Yes** |
 | `OPENCLAW_STATE_DIR` | Configuration and state directory | `/data/.openclaw` | No |
 | `OPENCLAW_WORKSPACE_DIR` | File storage directory | `/data/workspace` | No |
+| `OPENCLAW_HOME` | Home override for OpenClaw `~/.openclaw` paths such as exec approvals and sockets | `/data` | No |
 | `OPENCLAW_GATEWAY_TOKEN` | Gateway auth token (auto-generated if not set) | Auto-generated | No |
 | `INTERNAL_GATEWAY_PORT` | Internal port for OpenClaw gateway | `18789` | No |
 | `PORT` | External port (Railway overrides this) | `8080` | No |

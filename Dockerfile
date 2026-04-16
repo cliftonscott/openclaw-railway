@@ -144,8 +144,11 @@ EXPOSE 8080
 # PATH order: /opt/openclaw-bin (token-injecting wrapper) > /data/.npm-global/bin
 # (npm upgrades) > system defaults.  The wrapper delegates to the npm-upgraded
 # entry.js when available, so the upgraded code still runs.
+# OPENCLAW_HOME points exec approvals and other "~/.openclaw" paths at the real
+# volume root, avoiding symlink traversal failures under /home/openclaw/.openclaw.
 ENV NODE_ENV=production \
     HOME=/home/openclaw \
+    OPENCLAW_HOME=/data \
     OPENCLAW_STATE_DIR=/data/.openclaw \
     OPENCLAW_WORKSPACE_DIR=/data/workspace \
     INTERNAL_GATEWAY_PORT=18789 \
