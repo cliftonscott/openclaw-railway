@@ -99,14 +99,26 @@ function getLocalHashes() {
   return hashes;
 }
 
-async function wakeService(healthUrl) {
-  const response = await fetch(healthUrl);
-  return {
-    ok: response.ok,
-    status: response.status,
-    url: healthUrl,
-    body: await response.text(),
-  };
+async function wakeService(healthUrl, timeoutMs = 15000) {
+  try {
+    const response = await fetch(healthUrl, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    return {
+      ok: response.ok,
+      status: response.status,
+      url: healthUrl,
+      body: await response.text(),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: null,
+      url: healthUrl,
+      body: '',
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 async function runRailwayWithRetry(args, options = {}) {
@@ -251,6 +263,9 @@ export async function verifyAgntsDeployment(options = {}) {
   const blockingIssues = [];
   if (deployments[0]?.status !== 'SUCCESS') {
     blockingIssues.push(`latest deployment ${deployments[0]?.id} is ${deployments[0]?.status}`);
+  }
+  if (!health.ok) {
+    blockingIssues.push(`health endpoint ${healthUrl} is unavailable`);
   }
   if (!ciMode && mismatchedPaths.length > 0) {
     blockingIssues.push(`runtime source mismatch: ${mismatchedPaths.join(', ')}`);
