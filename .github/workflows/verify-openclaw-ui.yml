@@ -1,0 +1,75 @@
+name: Verify OpenClaw UI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+    - cron: '43 15 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-openclaw-ui
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      OPENCLAW_HEALTH_URL: https://openclaw.agnts.social/health
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Ensure Railway token is configured
+        run: |
+          if [ -z "${RAILWAY_TOKEN}" ]; then
+            echo "Missing RAILWAY_TOKEN GitHub secret"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Link Railway project context
+        run: railway status
+
+      - name: Run post-deploy verifier with retries
+        run: |
+          status=1
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            echo "Verifier attempt ${attempt}/10"
+            set +e
+            npm run agnts:verify-deployment > verification-result.json
+            status=$?
+            set -e
+            cat verification-result.json
+            if [ "${status}" -eq 0 ]; then
+              exit 0
+            fi
+            if [ "${attempt}" -lt 10 ]; then
+              sleep 90
+            fi
+          done
+          exit "${status}"
+
+      - name: Upload verification artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openclaw-ui-verification
+          path: verification-result.json

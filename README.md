@@ -304,9 +304,23 @@ npm run agnts:cluster-watch-readiness
 npm run agnts:cluster-watch
 npm run agnts:cluster-watch-monitor
 npm run agnts:cluster-drilldown -- --cluster-id 3 --stdout-only
+npm run agnts:verify-deployment
 ```
 
 The hosted agent is instructed to execute cluster-watch first, then drill down into the reported behavioral cluster, and only fall back to ranking-only degradation when the readiness gate says cluster-watch is blocked. The managed prompt now prefers direct `node /app/agnts-tooling/dist/...` invocations instead of compound shell wrappers like `cd /app && node ...`, because OpenClaw exec preflight handles the direct form more reliably. If live command execution fails, it should report that directly instead of answering from heuristics.
+
+`npm run agnts:verify-deployment` is the post-deploy verifier for the hosted `OpenClaw-UI` runtime. It checks:
+- Railway deployment state
+- live `/app` source hashes against the current local checkout
+- `openclaw.json` drift such as stale `plugins.entries.memory-core.config`
+- a real `main` agent answer to “Which agent clusters are degrading first?”
+
+The command prints JSON and exits non-zero if any blocking issue remains.
+
+GitHub automation is also included in `.github/workflows/verify-openclaw-ui.yml`. To enable it in your fork, add a repository secret named `RAILWAY_TOKEN` with access to the linked Railway project. The workflow runs on:
+- pushes to `main`
+- manual dispatch
+- a daily schedule
 
 ### Railway Volume Setup
 
