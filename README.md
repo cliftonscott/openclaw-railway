@@ -292,7 +292,8 @@ Install skills from two sources:
 
 When `AGNTS_ADMIN_CLIENT_ID` and `AGNTS_ADMIN_CLIENT_SECRET` are present, the wrapper now seeds two hosted runtime surfaces on startup:
 
-- `OPENCLAW_WORKSPACE_DIR/AGNTS.md` gets a managed AGNTS admin-auth + cluster-triage block.
+- `OPENCLAW_WORKSPACE_DIR/AGNTS.md` gets a managed AGNTS admin-auth + cluster-triage block for operator reference.
+- `OPENCLAW_WORKSPACE_DIR/AGENTS.md` gets the same managed AGNTS block appended so the live OpenClaw system prompt actually sees the cluster-watch instructions.
 - `OPENCLAW_STATE_DIR/cron/jobs.json` gets an hourly `agnts-cluster-watch` job that stays quiet unless the report monitor says an alert or cluster change should be emitted.
 
 The AGNTS cluster tooling is vendored under `agnts-tooling/dist`, so the image can run:

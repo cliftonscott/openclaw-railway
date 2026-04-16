@@ -261,8 +261,10 @@ export async function startGateway() {
   try {
     const bootstrap = bootstrapAgntsRuntime({ stateDir, workspaceDir });
     if (bootstrap.enabled) {
-      if (bootstrap.workspace.changed) {
-        console.log(`Updated AGNTS bootstrap at ${bootstrap.workspace.path}`);
+      for (const target of bootstrap.workspace.targets || []) {
+        if (target.changed) {
+          console.log(`Updated AGNTS bootstrap at ${target.path}`);
+        }
       }
       if (bootstrap.cron.changed) {
         console.log(`Updated AGNTS cluster-watch cron at ${bootstrap.cron.path}`);

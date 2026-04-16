@@ -1680,8 +1680,10 @@ server.listen(PORT, '0.0.0.0', () => {
       workspaceDir: OPENCLAW_WORKSPACE_DIR,
     });
     if (bootstrap.enabled) {
-      if (bootstrap.workspace.changed) {
-        console.log(`Seeded AGNTS bootstrap at ${bootstrap.workspace.path}`);
+      for (const target of bootstrap.workspace.targets || []) {
+        if (target.changed) {
+          console.log(`Seeded AGNTS bootstrap at ${target.path}`);
+        }
       }
       if (bootstrap.cron.changed) {
         console.log(`Seeded AGNTS cluster-watch cron at ${bootstrap.cron.path}`);

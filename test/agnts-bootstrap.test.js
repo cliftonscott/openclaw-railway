@@ -32,22 +32,27 @@ async function waitForFile(pathname, timeoutMs = 2000) {
   throw new Error(`Timed out waiting for file: ${pathname}`);
 }
 
-test('ensureAgntsWorkspaceBootstrap creates a managed AGNTS.md block', () => {
+test('ensureAgntsWorkspaceBootstrap creates managed AGNTS.md and AGENTS.md blocks', () => {
   const workspaceDir = mkdtempSync(join(tmpdir(), 'openclaw-agnts-workspace-'));
   const result = ensureAgntsWorkspaceBootstrap(workspaceDir, createEnv());
-  const bootstrapPath = join(workspaceDir, 'AGNTS.md');
+  const agntsPath = join(workspaceDir, 'AGNTS.md');
+  const agentsPath = join(workspaceDir, 'AGENTS.md');
 
   assert.equal(result.changed, true);
-  assert.equal(existsSync(bootstrapPath), true);
+  assert.equal(existsSync(agntsPath), true);
+  assert.equal(existsSync(agentsPath), true);
+  assert.equal(result.targets.length, 2);
 
-  const content = readFileSync(bootstrapPath, 'utf8');
-  assert.match(content, /## AGNTS admin API auth/);
-  assert.match(content, /## AGNTS bundled skills/);
-  assert.match(content, /## AGNTS cluster triage/);
-  assert.match(content, /agnts_cluster_watch/);
-  assert.match(content, /agnts_cluster_triage/);
-  assert.match(content, /runClusterWatchReadiness\.js/);
-  assert.match(content, /runClusterWatchMonitor\.js/);
+  for (const pathname of [agntsPath, agentsPath]) {
+    const content = readFileSync(pathname, 'utf8');
+    assert.match(content, /## AGNTS admin API auth/);
+    assert.match(content, /## AGNTS bundled skills/);
+    assert.match(content, /## AGNTS cluster triage/);
+    assert.match(content, /agnts_cluster_watch/);
+    assert.match(content, /agnts_cluster_triage/);
+    assert.match(content, /runClusterWatchReadiness\.js/);
+    assert.match(content, /runClusterWatchMonitor\.js/);
+  }
 });
 
 test('ensureAgntsWorkspaceBootstrap replaces stale AGNTS sections without duplicating them', () => {
@@ -138,15 +143,19 @@ test('server startup seeds AGNTS bootstrap files before gateway configuration ex
   const harness = await startServer(createEnv());
 
   try {
-    const bootstrapPath = join(harness.stateDir, 'workspace', 'AGNTS.md');
+    const agntsPath = join(harness.stateDir, 'workspace', 'AGNTS.md');
+    const agentsPath = join(harness.stateDir, 'workspace', 'AGENTS.md');
     const jobsPath = join(harness.stateDir, 'cron', 'jobs.json');
 
-    await waitForFile(bootstrapPath);
+    await waitForFile(agntsPath);
+    await waitForFile(agentsPath);
     await waitForFile(jobsPath);
 
-    assert.equal(existsSync(bootstrapPath), true);
+    assert.equal(existsSync(agntsPath), true);
+    assert.equal(existsSync(agentsPath), true);
     assert.equal(existsSync(jobsPath), true);
-    assert.match(readFileSync(bootstrapPath, 'utf8'), /## AGNTS cluster triage/);
+    assert.match(readFileSync(agntsPath, 'utf8'), /## AGNTS cluster triage/);
+    assert.match(readFileSync(agentsPath, 'utf8'), /## AGNTS cluster triage/);
     assert.equal(
       JSON.parse(readFileSync(jobsPath, 'utf8')).some((job) => job.name === 'agnts-cluster-watch'),
       true,

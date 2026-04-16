@@ -120,36 +120,59 @@ export function buildAgntsManagedBlock(env = process.env) {
   ].join('\n'));
 }
 
-export function upsertAgntsWorkspaceContent(content, env = process.env) {
+export function upsertAgntsWorkspaceContent(content, env = process.env, options = {}) {
+  const defaultHeading = options.defaultHeading || '# AGNTS';
   const withoutManagedBlock = removeManagedBlock(content);
   const withoutLegacySections = stripMarkdownSection(
-    stripMarkdownSection(withoutManagedBlock, 'AGNTS cluster triage'),
+    stripMarkdownSection(
+      stripMarkdownSection(withoutManagedBlock, 'AGNTS cluster triage'),
+      'AGNTS bundled skills',
+    ),
     'AGNTS admin API auth',
   ).trimEnd();
 
   const prefix = withoutLegacySections.length > 0
     ? ensureTrailingNewline(withoutLegacySections)
-    : '# AGNTS\n\n';
+    : `${defaultHeading}\n\n`;
 
   return ensureTrailingNewline(`${prefix.trimEnd()}\n\n${buildAgntsManagedBlock(env).trimEnd()}\n`);
 }
 
+function ensureAgntsWorkspaceFile(workspaceDir, filename, env, options = {}) {
+  const defaultHeading = options.defaultHeading || '# AGNTS';
+  const filePath = join(workspaceDir, filename);
+  const current = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+  const next = upsertAgntsWorkspaceContent(current, env, { defaultHeading });
+
+  if (next !== current) {
+    writeFileSync(filePath, next, 'utf8');
+    return { changed: true, path: filePath, skipped: false, filename };
+  }
+
+  return { changed: false, path: filePath, skipped: false, filename };
+}
+
 export function ensureAgntsWorkspaceBootstrap(workspaceDir, env = process.env) {
   if (!isAgntsBootstrapEnabled(env)) {
-    return { changed: false, path: join(workspaceDir, 'AGNTS.md'), skipped: true };
+    const targets = [
+      { changed: false, path: join(workspaceDir, 'AGNTS.md'), skipped: true, filename: 'AGNTS.md' },
+      { changed: false, path: join(workspaceDir, 'AGENTS.md'), skipped: true, filename: 'AGENTS.md' },
+    ];
+    return { changed: false, path: targets[0].path, skipped: true, targets };
   }
 
   mkdirSync(workspaceDir, { recursive: true });
-  const bootstrapPath = join(workspaceDir, 'AGNTS.md');
-  const current = existsSync(bootstrapPath) ? readFileSync(bootstrapPath, 'utf8') : '';
-  const next = upsertAgntsWorkspaceContent(current, env);
+  const targets = [
+    ensureAgntsWorkspaceFile(workspaceDir, 'AGNTS.md', env, { defaultHeading: '# AGNTS' }),
+    ensureAgntsWorkspaceFile(workspaceDir, 'AGENTS.md', env, { defaultHeading: '# AGENTS.md' }),
+  ];
 
-  if (next !== current) {
-    writeFileSync(bootstrapPath, next, 'utf8');
-    return { changed: true, path: bootstrapPath, skipped: false };
-  }
-
-  return { changed: false, path: bootstrapPath, skipped: false };
+  return {
+    changed: targets.some((target) => target.changed),
+    path: (targets.find((target) => target.changed) || targets[0]).path,
+    skipped: false,
+    targets,
+  };
 }
 
 function buildClusterWatchJob(env = process.env) {
