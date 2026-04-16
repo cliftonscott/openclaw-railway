@@ -62,11 +62,11 @@ export function getAgntsToolingRoot(env = process.env) {
 
 export function buildAgntsManagedBlock(env = process.env) {
   const toolingRoot = getAgntsToolingRoot(env);
-  const readinessCommand = `cd /app && node ${toolingRoot}/dist/runClusterWatchReadiness.js --stdout-only`;
-  const watchCommand = `cd /app && node ${toolingRoot}/dist/runClusterWatch.js --stdout-only`;
-  const monitorCommand = `cd /app && node ${toolingRoot}/dist/runClusterWatchMonitor.js --stdout-only`;
-  const drilldownCommand = `cd /app && node ${toolingRoot}/dist/runClusterDrilldown.js --cluster-id <clusterId> --stdout-only`;
-  const degradationCommand = `cd /app && node ${toolingRoot}/dist/runClusterDegradation.js --stdout-only`;
+  const readinessCommand = `node ${toolingRoot}/dist/runClusterWatchReadiness.js --stdout-only`;
+  const watchCommand = `node ${toolingRoot}/dist/runClusterWatch.js --stdout-only`;
+  const monitorCommand = `node ${toolingRoot}/dist/runClusterWatchMonitor.js --stdout-only`;
+  const drilldownCommand = `node ${toolingRoot}/dist/runClusterDrilldown.js --cluster-id <clusterId> --stdout-only`;
+  const degradationCommand = `node ${toolingRoot}/dist/runClusterDegradation.js --stdout-only`;
 
   return ensureTrailingNewline([
     AGNTS_MANAGED_START,
@@ -102,6 +102,7 @@ export function buildAgntsManagedBlock(env = process.env) {
     'Use this order:',
     '1. Prefer the bundled `agnts_cluster_watch` skill when available.',
     '2. If the bundled skill does not return a concrete live result, use the `exec` tool and run the readiness and report commands directly in the same turn.',
+    '   Use the direct `node /app/...` form, not compound shell wrappers such as `cd /app && node ...`.',
     `3. Run \`${readinessCommand}\` and read the JSON result.`,
     '4. If `clusterWatchReady` is `true`, run the cluster watch report.',
     `5. If the watch triggers, run \`${drilldownCommand}\` with the reported behavioral cluster id.`,
@@ -180,7 +181,7 @@ export function ensureAgntsWorkspaceBootstrap(workspaceDir, env = process.env) {
 
 function buildClusterWatchJob(env = process.env) {
   const toolingRoot = getAgntsToolingRoot(env);
-  const monitorCommand = `cd /app && node ${toolingRoot}/dist/runClusterWatchMonitor.js --stdout-only`;
+  const monitorCommand = `node ${toolingRoot}/dist/runClusterWatchMonitor.js --stdout-only`;
   const jobName = trimEnv(env, 'AGNTS_CLUSTER_WATCH_JOB_NAME') || 'agnts-cluster-watch';
   const destination = trimEnv(env, 'AGNTS_CLUSTER_WATCH_CHANNEL') || DEFAULT_CLUSTER_WATCH_CHANNEL;
 

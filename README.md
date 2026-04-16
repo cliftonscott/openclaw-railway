@@ -306,7 +306,7 @@ npm run agnts:cluster-watch-monitor
 npm run agnts:cluster-drilldown -- --cluster-id 3 --stdout-only
 ```
 
-The hosted agent is instructed to execute cluster-watch first, then drill down into the reported behavioral cluster, and only fall back to ranking-only degradation when the readiness gate says cluster-watch is blocked. If live command execution fails, it should report that directly instead of answering from heuristics.
+The hosted agent is instructed to execute cluster-watch first, then drill down into the reported behavioral cluster, and only fall back to ranking-only degradation when the readiness gate says cluster-watch is blocked. The managed prompt now prefers direct `node /app/agnts-tooling/dist/...` invocations instead of compound shell wrappers like `cd /app && node ...`, because OpenClaw exec preflight handles the direct form more reliably. If live command execution fails, it should report that directly instead of answering from heuristics.
 
 ### Railway Volume Setup
 

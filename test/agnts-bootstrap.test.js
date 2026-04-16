@@ -54,6 +54,10 @@ test('ensureAgntsWorkspaceBootstrap creates managed AGNTS.md and AGENTS.md block
     assert.match(content, /runClusterWatchMonitor\.js/);
     assert.match(content, /must execute the AGNTS cluster-watch workflow/);
     assert.match(content, /do not substitute intuition/);
+    assert.match(content, /Use the direct `node \/app\/\.\.\.` form/);
+    assert.doesNotMatch(content, /Run `cd \/app && node/);
+    assert.doesNotMatch(content, /Cluster watch report command: `cd \/app && node/);
+    assert.doesNotMatch(content, /Scheduled monitor command: `cd \/app && node/);
   }
 });
 
@@ -139,6 +143,9 @@ test('buildAgntsManagedBlock honors AGNTS_TOOLING_ROOT overrides', () => {
 
   assert.match(content, /node \/custom\/tools\/dist\/runClusterWatchReadiness\.js/);
   assert.match(content, /node \/custom\/tools\/dist\/runClusterDrilldown\.js/);
+  assert.doesNotMatch(content, /Run `cd \/app && node/);
+  assert.doesNotMatch(content, /Cluster watch report command: `cd \/app && node/);
+  assert.doesNotMatch(content, /Scheduled monitor command: `cd \/app && node/);
 });
 
 test('server startup seeds AGNTS bootstrap files before gateway configuration exists', async () => {
